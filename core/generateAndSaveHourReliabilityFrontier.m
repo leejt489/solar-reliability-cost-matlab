@@ -42,26 +42,16 @@ for reliability = reliabilities'
         end
         if (isempty(electricLoad))
             %Create the electric load vector. Only needs to be done once.
-            createLoad = @(x) repmat(x,length(insolation)/24,1);
-            switch loadType
-                case 'constant'
-                    electricLoad = createLoad(ones(24,1)/24);
-                case 'nightHeavy'
-                    electricLoad = createLoad(createNightHeavyHourlyLoadProfile);
-                case 'dayHeavy'
-                    electricLoad = createLoad(createDayHeavyHourlyLoadProfile);
-                case 'kitobo'
-                    electricLoad = createLoad(getKitoboHourlyLoad);
-                otherwise
-                    error('Unrecognized load type');
-            end
+            electricLoad = createHourlyLoadProfile(loadType,length(insolation)/24);
         end
         
         %Calculate the reliability frontier
         [solCap, storCap, solCapD] = calculateReliabilityFrontier(reliability,insolation,electricLoad);
     catch e
-        disp(e);
-        error('Could not calculate reliability for lat: %g, lon: %g, reliability: %g',lat,lon,reliability);
+        newException = MException('SolarReliabilityCost:generateAndSaveHourReliabilityFrontier:calculationFailed', ...
+            'Could not calculate reliability for lat: %g, lon: %g, reliability: %g',lat,lon,reliability);
+        newException = addCause(newException, e);
+        throw(newException);
     end
     reliabilityFrontierMap(reliability) = [storCap, solCap, solCapD];
     changed = true;

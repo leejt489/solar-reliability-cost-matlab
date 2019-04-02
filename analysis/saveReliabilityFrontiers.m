@@ -4,15 +4,16 @@ if (nargin < 3)
     loadType = 'constant';
 end
 
-if (~any(strcmp(loadType,{'constant','nightHeavy','dayHeavy','kitobo'})))
-    error('Unrecognized load type %s',loadType);
-end
+%if (~any(strcmp(loadType,{'constant','nightHeavy','dayHeavy','kitobo'})))
+%    error('Unrecognized load type %s',loadType);
+%end
 
 points = getLonLatPoints(res,region);
 reliabilities = getSampleReliabilities;
 gridReliability = getGridReliability(points);
 
 reliabilityFrontiers = containers.Map;
+successPoints = zeros(size(points,1),1);
 fprintf('\nStarting processing...\n');
 s = '';
 tic
@@ -41,7 +42,12 @@ for i = 1:size(points,1)
         %r = [reliabilities;gridReliability(i)];
         r = reliabilities;
     end
-    reliabilityFrontiers(keyString) = generateAndSaveHourReliabilityFrontier(lat,lon,r,'m',loadType);
+    try
+        reliabilityFrontiers(keyString) = generateAndSaveHourReliabilityFrontier(lat,lon,r,'m',loadType);
+        successPoints(i) = 1;
+    catch e
+        warning(e.message);
+    end
 end
-
+points = points(logical(successPoints),:);
 save(sprintf('../data/reliabilityFrontiers_%s_%s_%s',loadType,lower(region),strrep(num2str(res),'.','_')),'points','reliabilityFrontiers');
